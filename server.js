@@ -1,25 +1,28 @@
 const WebSocket = require('ws');
 
 const server = new WebSocket.Server({ port: process.env.PORT || 8080 });
+const clients = new Set(); // Armazena todos os clientes conectados
 
 server.on('connection', (socket) => {
     console.log('Cliente conectado');
+    clients.add(socket); // Adiciona o cliente à lista de conexões
 
+    // Trata mensagens recebidas de um cliente
     socket.on('message', (message) => {
-        // Converte a mensagem de Buffer para string
-        const messageString = message.toString(); 
-        console.log('Mensagem recebida:', messageString);
+        console.log('Mensagem recebida:', message.toString());
 
-        // Envia a mensagem de volta como um JSON
-        socket.send(JSON.stringify({ type: 'echo', message: messageString }));
+        // Reenvia a mensagem para todos os clientes, exceto o remetente
+        clients.forEach(client => {
+            if (client !== socket && client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
     });
 
+    // Remove o cliente da lista ao desconectar
     socket.on('close', () => {
         console.log('Cliente desconectado');
-    });
-
-    socket.on('error', (error) => {
-        console.error('Erro no WebSocket:', error);
+        clients.delete(socket);
     });
 });
 
