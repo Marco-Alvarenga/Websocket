@@ -3,19 +3,24 @@ const WebSocket = require('ws');
 const server = new WebSocket.Server({ port: process.env.PORT || 8080 });
 
 server.on('connection', (socket) => {
-    console.log('Client connected');
+    console.log('Cliente conectado');
 
     socket.on('message', (message) => {
-        console.log('Received:', message);
-        
-        // Envia um objeto JSON como resposta
-        const response = { type: 'echo', message: message };
-        socket.send(JSON.stringify(response));
+        // Converte a mensagem de Buffer para string
+        const messageString = message.toString(); 
+        console.log('Mensagem recebida:', messageString);
+
+        // Envia a mensagem de volta como um JSON
+        socket.send(JSON.stringify({ type: 'echo', message: messageString }));
     });
 
     socket.on('close', () => {
-        console.log('Client disconnected');
+        console.log('Cliente desconectado');
+    });
+
+    socket.on('error', (error) => {
+        console.error('Erro no WebSocket:', error);
     });
 });
 
-console.log('WebSocket server is running...');
+console.log('Servidor WebSocket está rodando...');
