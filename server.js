@@ -1,26 +1,29 @@
-const express = require('express');
-const path = require('path');
-const app = express();
-const port = process.env.PORT || 3000;
+const WebSocket = require('ws');
 
-// Servir arquivos estáticos da pasta "public"
-app.use(express.static(path.join(__dirname, 'public')));
+const server = new WebSocket.Server({ port: process.env.PORT || 8080 });
+const clients = new Set(); // Armazena todos os clientes conectados
 
-// Rota principal para servir o index.html
-app.get('/teste', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'teste.html'));
+server.on('connection', (socket) => {
+    console.log('Cliente conectado');
+    clients.add(socket); // Adiciona o cliente à lista de conexões
+
+    // Trata mensagens recebidas de um cliente
+    socket.on('message', (message) => {
+        console.log('Mensagem recebida:', message.toString());
+
+        // Reenvia a mensagem para todos os clientes, exceto o remetente
+        clients.forEach(client => {
+            if (client !== socket && client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    });
+
+    // Remove o cliente da lista ao desconectar
+    socket.on('close', () => {
+        console.log('Cliente desconectado');
+        clients.delete(socket);
+    });
 });
 
-// Rota principal para servir o index.html
-app.get('/terapeuta', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'terapeuta.html'));
-});
-
-// Rota adicional para servir o cliente.html
-app.get('/cliente', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'cliente.html'));
-});
-
-app.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
-});
+console.log('Servidor WebSocket está rodando...');
